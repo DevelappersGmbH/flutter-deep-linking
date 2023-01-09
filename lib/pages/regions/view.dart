@@ -26,6 +26,8 @@ class _RegionsPageState extends State<RegionsPage>
     // Add listener to update the selected tab when the route changes
     // from outside of this widget.
     widget.router.navigator.addListener(_updateTab);
+    // Update the selected tab at start, in case the route was not the default route.
+    _updateTab();
   }
 
   void _updateTab() {

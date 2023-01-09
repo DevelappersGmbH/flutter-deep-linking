@@ -31,5 +31,6 @@ class _CurrenciesPageState extends RouterState<CurrenciesPage> {
   }
 
   @override
+  // provide the router to the state
   QRouter get router => widget.router;
 }

@@ -1,112 +1,203 @@
-# Implementing Deep Linking in Flutter Using the qlevar_router Package
+# TabBar and BottomNavigationBar in flutter with qlevar_router
 
-Deep linking in Flutter refers to the ability to link to specific pages or content within an app. This allows users to share links to specific content within an app, rather than just the app's homepage. Deep linking can improve user experience by allowing users to easily access the content they want without having to navigate through the app to find it.
+In the world of mobile app development, navigation is a crucial aspect that helps users navigate through the app and access different pages and features. In Flutter, two popular options for navigation are the TabBar and BottomNavigationBar. Both of these widgets provide a way to display multiple options in a horizontal strip at the bottom of the screen, but they have some differences that make them suitable for different scenarios.
 
-One way to implement deep linking in Flutter is by using the qlevar_router package. This package provides a simple and powerful routing system for Flutter apps.
-In this article, we will look at how to implement deep linking in Flutter using the qlevar_router package by creating a simple app that displays information about countries by their name.
+Using these widgets with a routing system could be a bit tricky, but the qlevar_router package makes it easy to implement them in your app. In this article, we will look at how to implement TabBar and BottomNavigationBar in Flutter using the qlevar_router package by creating a simple app that displays information about countries by region and currency.
 
 we will use [restcountries api](https://restcountries.com) to get the data of the countries.
-To use qlevar_router, first add it to your pubspec.yaml file and then define the routes for your app.
 
-```yaml
-dependencies:
-  qlevar_router: ^1.7.1
-```
+## Routes definition
 
-Then define the routes for your app:
+First, we need to define the routes for our app. We will have two routes:
+
+- The first route is the home route which contains a TabBar widget with four tabs, one for each region.
+- The second route is the currency route, which contains a BottomNavigationBar widget with three tabs, one for each currency.
 
 ```dart
-final routes = [
-  QRoute(
-    path: '/country',
-    builder: () => const MyHomePage(),
-    children: [
-      QRoute(
-        path: '/:country',
-        builder: () => const CountryWidget(),
+class AppRoutes {
+  static const String home = '/home';
+
+  static const String currency = 'currencies';
+  static const List<String> currencies = ['euro', 'dollar', 'rial'];
+
+  static const String region = 'regions';
+  static const List<String> regions = ['asia', 'europe', 'africa', 'america'];
+
+  static String toPath(String name) => '/$name';
+
+  final routes = [
+    QRoute(
+      name: home,
+      path: '/home',
+      builder: () => const HomePage(),
+      children: [
+        QRoute.withChild(
+          name: currency,
+          path: toPath(currency),
+          builderChild: (r) => CurrenciesPage(r),
+          initRoute: currencies.first,
+          children: [
+            for (final currency in currencies)
+              QRoute(
+                name: currency,
+                path: toPath(currency),
+                builder: () => CurrencyWidget(currency),
+              ),
+          ],
+        ),
+        QRoute.withChild(
+          name: region,
+          path: toPath(region),
+          builderChild: (r) => RegionsPage(r),
+          initRoute: regions.first,
+          children: [
+            for (final region in regions)
+              QRoute(
+                name: region,
+                path: toPath(region),
+                builder: () => RegionWidget(region),
+              ),
+          ],
+        ),
+      ],
+    ),
+  ];
+}
+
+```
+
+Our main page is the home page, where the user can go to the regions page or the currencies page, and it has two children, one for each page. 
+The regions page and the currencies page should be `QRoute.withChild`, so we could define a nested router for each page. where we can update a specific part of the page when the user navigates to a different route.
+
+For Example, when the user navigates from the euro tab to the dollar tab, we need to update just the list of countries in the currencies page, and not the whole page.
+
+When we define a route with `QRoute.withChild`, the builderChild function will be called to build the page. The builderChild function will be called with a `QRouter` object, which is the router for the child routes. We can use this router to display to the child routes in the page in any position we want.
+
+## TabBar
+
+our regions page will be a stateful widget that contains a `QRouter` object and a `TabController`, We will use the `QRouter` object to display the child routes in the page. and the `TabController` to update the selected tab when the user navigates to a different route.
+
+```dart
+class RegionsPage extends StatefulWidget {
+  final QRouter router;
+  const RegionsPage(this.router, {super.key});
+
+  @override
+  State<RegionsPage> createState() => _RegionsPageState();
+}
+
+class _RegionsPageState extends State<RegionsPage>
+    with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(
+      length: AppRoutes.regions.length,
+      vsync: this,
+    );
+
+    // Add listener to update the selected tab when the route changes
+    // from outside of this widget.
+    widget.router.navigator.addListener(_updateTab);
+    // Update the selected tab at start, in case the route was not the default route.
+    _updateTab();
+  }
+
+  void _updateTab() {
+    _tabController.animateTo(
+      AppRoutes.regions.indexOf(widget.router.navigator.currentRoute.name!),
+    );
+  }
+
+  @override
+  void dispose() {
+    widget.router.navigator.removeListener(_updateTab);
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Mobile'),
+        centerTitle: true,
+        bottom: TabBar(
+          controller: _tabController,
+          onTap: (value) {
+            QR.toName(AppRoutes.regions[value]);
+          },
+          tabs: AppRoutes.regions.map((e) => Tab(text: e)).toList(),
+        ),
       ),
-    ],
-  ),
-];
+      body: widget.router,
+    );
+  }
+}
+
 ```
 
-The above code defines two routes:
+Now when the user navigates to the regions page, the `RegionsPage` widget will be built, and the `TabController` will be initialized with the current route name, which is the defined with `initRoute` in the routes.
+When the user navigates to a different child of the regions page, the `widget.router` will be updated with the new route, and the `TabController` will be updated with the new selected route.
 
-- The first route is the home route which just contains a search field to enter the country name and then redirect to the second page.
-- The second route is the country route, which displays information about a specific country. The country route is a child route of the home route and has a parameter called country, which is used to define the name of the country.
+## BottomNavigationBar
 
-Next, we need to initialize the router and set the home route for the app to 'country':
+Implementing the currencies page is easier than the regions page, because we here we can use the `RouterState` class from the qlevar_router package to update the selected tab when the user navigates to a different route.
+all we need to do is to provide the `QRouter` to the `RouterState` class.
 
 ```dart
-return MaterialApp.router(
-  title: 'Country Information App',
-  routerDelegate: QRouterDelegate(routes, initPath: '/country'),
-  routeInformationParser: const QRouteInformationParser(),
-);
+
+class CurrenciesPage extends StatefulWidget {
+  final QRouter router;
+  const CurrenciesPage(this.router, {super.key});
+
+  @override
+  State<CurrenciesPage> createState() => _CurrenciesPageState();
+}
+
+class _CurrenciesPageState extends RouterState<CurrenciesPage> {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Currencies')),
+      body: widget.router,
+      bottomNavigationBar: BottomNavigationBar(
+        items: [
+          for (var route in AppRoutes.currencies)
+            BottomNavigationBarItem(
+              label: route,
+              icon: const Icon(Icons.currency_exchange),
+            ),
+        ],
+        currentIndex: AppRoutes.currencies.indexOf(widget.router.routeName),
+        onTap: (v) => QR.toName(AppRoutes.currencies[v]),
+      ),
+    );
+  }
+
+  @override
+  // provide the router to the state
+  QRouter get router => widget.router;
+}
+
 ```
 
-after defining the pages, we need to [enable deep linking for the app](https://docs.flutter.dev/development/ui/navigation/deep-linking). 
+and that is it. you can use the same approach to implement a NavigationRail. See the [example here](https://github.com/SchabanBo/qr_samples/blob/main/lib/common_cases/nav_rail.dart).
 
+## Deep linking
 
-## Enabling Deep Linking in Android
-
-To do this for android , we need to add the following code to the AndroidManifest.xml file in `activity` tag:
-
-```xml
-<meta-data android:name="flutter_deeplinking_enabled" android:value="true" />
-<intent-filter android:autoVerify="true">
-    <action android:name="android.intent.action.VIEW" />
-    <category android:name="android.intent.category.DEFAULT" />
-    <category android:name="android.intent.category.BROWSABLE" />
-    <data android:scheme="http" android:host="develappers.de" />
-    <data android:scheme="https" />
-</intent-filter>
-```
-
-The above code enables deep linking for the app and defines the scheme and host for the app. The scheme is the protocol used to open the app, and the host is the domain name of the app. The host name can be any name you want, but it must be unique. 
-
-Now we can test the app by running the following command in the terminal after running the app on a device or emulator:
+Using qlevar_router enables you to use deep linking out of the box in your app. without any extra configuration. you can open any tap in your app by using the url scheme.
+After enabling deep linking in your app, you can run this command to test the deep linking in your app.
 
 ```bash
-adb shell am start -a android.intent.action.VIEW -c android.intent.category.BROWSABLE -d "http://develappers.de/country/germany" com.example.country_deep_linking
+adb shell am start -a android.intent.action.VIEW -c android.intent.category.BROWSABLE -d "http://develappers.de/home/regions/africa" com.example.country_deep_linking
 ```
 
-The above command will open the app and navigate to the country route with the parameter country set to germany. The app will then display information about Germany.
-
-## Enabling Deep Linking in iOS
-
-To enable deep linking in iOS, we need to add the following code to the Info.plist file:
-
-```xml
-<key>FlutterDeepLinkingEnabled</key>
-<true />
-<key>CFBundleURLTypes</key>
-<array>
-	<dict>
-		<key>CFBundleTypeRole</key>
-		<string>Editor</string>
-		<key>CFBundleURLName</key>
-		<string>develappers.de</string>
-		<key>CFBundleURLSchemes</key>
-		<array>
-			<string>app</string>
-		</array>
-	</dict>
-</array>
-```
-
-Then we can test the app by running the following command in the terminal after running the app on a device or emulator:
-
-```bash
-xcrun simctl openurl booted "app://develappers.de/country/germany"
-```
-
-The above command will open the app and navigate to the country route with the parameter country set to germany. The app will then display information about Germany.
-
-## Web application
-
-you can use the same code for web application. run the app on the web and then add the shown url in the browser `/country/germany` and the app will navigate to the country route with the parameter country set to germany. The app will then display information about Germany.
+This will open the app and navigate to the africa tab in the regions page. read more about deep linking with qlevar_router [here]().
 
 ## Conclusion
 
-In this article, we looked at how to implement deep linking in Flutter using the qlevar_router package. We created a simple app that displays information about countries by their name. We then enabled deep linking for the app and tested it on Android and iOS devices and web application. You can find the full code for the app on [GitHub]().
+In this article, we learned how to implement a nested router in a flutter app using qlevar_router. We learned how to use the `QRoute.withChild` to define a nested router, and how to use the `QRouter` object to display the child routes in the page. We also learned how to use the `TabController` and the `RouterState` class to update the selected tab when the user navigates to a different route. and we learned how to use deep linking to open any tab in the app.
+
