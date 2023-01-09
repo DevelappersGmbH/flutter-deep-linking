@@ -10,8 +10,8 @@ we will use [restcountries api](https://restcountries.com) to get the data of th
 
 First, we need to define the routes for our app. We will have two routes:
 
-- The first route is the home route which contains a TabBar widget with four tabs, one for each region.
-- The second route is the currency route, which contains a BottomNavigationBar widget with three tabs, one for each currency.
+- The [first route](https://github.com/DevelappersGmbH/flutter-deep-linking/blob/main/lib/routes/app_routes.dart#L26) is the home route which contains a TabBar widget with four tabs, one for each region.
+- The [second route](https://github.com/DevelappersGmbH/flutter-deep-linking/blob/main/lib/routes/app_routes.dart#L40) is the currency route, which contains a BottomNavigationBar widget with three tabs, one for each currency.
 
 ```dart
 class AppRoutes {
@@ -66,12 +66,12 @@ class AppRoutes {
 
 ```
 
-Our main page is the home page, where the user can go to the regions page or the currencies page, and it has two children, one for each page. 
-The regions page and the currencies page should be `QRoute.withChild`, so we could define a nested router for each page. where we can update a specific part of the page when the user navigates to a different route.
+Our main page is the [home page](https://github.com/DevelappersGmbH/flutter-deep-linking/blob/main/lib/pages/home/view.dart), where the user can go to the [regions page](https://github.com/DevelappersGmbH/flutter-deep-linking/blob/main/lib/pages/regions/view.dart) or the [currencies page](https://github.com/DevelappersGmbH/flutter-deep-linking/blob/main/lib/pages/currencies/view.dart), and it has two children, one for each page. 
+The regions page and the currencies page should be `QRoute.withChild`, so we could define them as a nested router, where we can update a specific part of the page when the user navigates to a different route.
 
 For Example, when the user navigates from the euro tab to the dollar tab, we need to update just the list of countries in the currencies page, and not the whole page.
 
-When we define a route with `QRoute.withChild`, the builderChild function will be called to build the page. The builderChild function will be called with a `QRouter` object, which is the router for the child routes. We can use this router to display to the child routes in the page in any position we want.
+When we define a route with `QRoute.withChild`, the builderChild function will be called to build the page. The builderChild function will be called with a [`QRouter` object](https://github.com/DevelappersGmbH/flutter-deep-linking/blob/main/lib/routes/app_routes.dart#L29), which is the router for the child routes. We can use this router to display to the child routes in the page in any position we want.
 
 ## TabBar
 
@@ -139,7 +139,7 @@ class _RegionsPageState extends State<RegionsPage>
 
 ```
 
-Now when the user navigates to the regions page, the `RegionsPage` widget will be built, and the `TabController` will be initialized with the current route name, which is the defined with `initRoute` in the routes.
+Now when the user navigates to the regions page, the `RegionsPage` widget will be built, and the `TabController` will be initialized with the current route name, which is the defined with [`initRoute`](https://github.com/DevelappersGmbH/flutter-deep-linking/blob/main/lib/routes/app_routes.dart#L30) in the routes.
 When the user navigates to a different child of the regions page, the `widget.router` will be updated with the new route, and the `TabController` will be updated with the new selected route.
 
 ## BottomNavigationBar
